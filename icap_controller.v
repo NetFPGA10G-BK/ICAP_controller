@@ -77,12 +77,16 @@
 //----------------------------------------
 // Module Section
 //----------------------------------------
+
+
 module icap_controller 
 	(
 		// ADD USER PORTS BELOW THIS LINE 
 		// -- USER ports added here 
 		// ADD USER PORTS ABOVE THIS LINE 
-		ICAP_clk,			//ICAP_CLK - or in the future can make a clock generator in this module
+		
+		ICAP_clk,				//ICAP_CLK - or in the future can make a clock generator in this module
+		
 		// DO NOT EDIT BELOW THIS LINE ////////////////////
 		// Bus protocol ports, do not add or delete. 
 		ACLK,
@@ -99,17 +103,17 @@ module icap_controller
 	);
 
 // ADD USER PORTS BELOW THIS LINE 
-	input 									BCLK;
+	input 												ICAP_clk;
 // ADD USER PORTS ABOVE THIS LINE 
 
 	input                                     ACLK;
 	input                                     ARESETN;
 	output                                    S_AXIS_TREADY;
-	input      [256 : 0]                      S_AXIS_TDATA;
+	input      [255 : 0]                      S_AXIS_TDATA;
 	input                                     S_AXIS_TLAST;
 	input                                     S_AXIS_TVALID;
 	output                                    M_AXIS_TVALID;
-	output     [31 : 0]                       M_AXIS_TDATA;
+	output     [255 : 0]                       M_AXIS_TDATA;
 	output                                    M_AXIS_TLAST;
 	input                                     M_AXIS_TREADY;
 
@@ -123,36 +127,27 @@ module icap_controller
 // Implementation Section
 //----------------------------------------
 // 
-	//input write_en;
-	//input [DATA_WIDTH - 1 : 0] write_data;
-	
-	//output [ICAP_WIDTH - 1 : 0] icap_data; 
-	//output icap_busy;
-	
+
+	wire [DATA_WIDTH - 1 : 0] write_data;
+	wire [DATA_WIDTH - 1 : 0] read_data;
+	wire write_en;
 	wire read_en;
 	wire fifo_flag_EMPTY;
-	wire [DATA_WIDTH - 1 : 0] read_data;
 	wire icap_flag_en;
 	wire icap_flag_wr_en;
+	wire icap_data;
+	wire data_temp;
+
 	
-	/*Fifo_independent_v8 Fifo_independent_v8(
-	  .rst(rst),
-	  .wr_clk(clk_1),
-	  .rd_clk(clk_2),
-	  .din(write_data),
-	  .wr_en(write_en),
-	  .rd_en(read_en),
-	  .dout(read_data),
-	  .full(fifo_flag_FULL),
-	  .empty (fifo_flag_EMPTY)
-	);
-	*/
+	assign write_data = S_AXIS_TDATA;
+	assign data_temp = read_data;
+	assign write_en = (S_AXIS_TVALID & M_AXIS_TREADY);
 	
 	Asyn_fifo_v1 #(DATA_WIDTH, ICAP_WIDTH) fifo
 	(	
 		.wfull(fifo_flag_FULL),
 		.wdata(S_AXIS_TDATA),
-		.winc(S_AXIS_TREADY),
+		.winc(write_en),
 		.wclk(ACLK),
 		.wrst_n(ARESETN),
 		
@@ -163,15 +158,15 @@ module icap_controller
 		.rrst_n(ARESETN)
 	);
 	
-	/*counter counter (
-	);*/
-	ICAP_statemachine ICAP_SM(
+	icap_statemachine #(DATA_WIDTH) ICAP_SM
+	(
 		.clock(ICAP_clk),
 		.reset(ARESETN),
+		.fifo_data(data_temp),
 		.fifo_empty(fifo_flag_EMPTY),
 		.fifo_read_en(read_en),
+		.icap_data(icap_data),
 		.icap_en(icap_flag_en)
-		//.icap_wr_en(icap_flag_wr_en)
    );
 	
 	ICAP_VIRTEX5 #(
@@ -181,9 +176,8 @@ module icap_controller
 		.CLK(ICAP_clk),						// 1-bit input: Clock Input
 		.CE(icap_flag_en),				// 1-bit input: Active-Low ICAP input Enable
 		.WRITE(icap_flag_wr_en),		// 1-bit input: Read/Write Select input
-		.I(read_data),						// ICAP_WIDTH - bit input: Configuration data input bus
+		.I(icap_data),						// ICAP_WIDTH - bit input: Configuration data input bus
 		.O(),									// ICAP_WIDTH -bit output: Configuration data output bus
 		.BUSY()								// 1-bit output: Busy/Ready output
 	); 
-
 endmodule
