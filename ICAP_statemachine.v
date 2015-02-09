@@ -102,7 +102,10 @@ begin
 			end
 			else begin
 				count = 0;
-				next_state = READ_FIFO;
+				if (fifo_empty)
+					next_state = IDLE;
+				else
+					next_state = READ_FIFO;
 			end
 		end
 		default: begin
