@@ -36,32 +36,32 @@ module ICAP_statemachine
     );
 
 		//behavior states
-		localparam IDLE 						= 2'b00;
+		localparam IDLE 				= 2'b00;
 		localparam READ_FIFO 				= 2'b01;
 		localparam DIVIDE_DATA 				= 2'b10;
 		localparam ABORT_ICAP 				= 2'b11;
 		
 		//count states
-		localparam ONE 						= 8'b00000001;
-		localparam TWO 						= 8'b00000010;
-		localparam THREE 						= 8'b00000100;
-		localparam FOUR 						= 8'b00001000;
-		localparam FIVE 						= 8'b00010000;
-		localparam SIX 						= 8'b00100000;
-		localparam SEVEN 						= 8'b01000000;
-		localparam EIGHT 						= 8'b10000000;
+		localparam ONE 					= 8'b00000001;
+		localparam TWO 					= 8'b00000010;
+		localparam THREE 				= 8'b00000100;
+		localparam FOUR 				= 8'b00001000;
+		localparam FIVE 				= 8'b00010000;
+		localparam SIX 					= 8'b00100000;
+		localparam SEVEN 				= 8'b01000000;
+		localparam EIGHT 				= 8'b10000000;
 		//localparam STOP 	= 8'b100000000;
 		
 		//enable and disable for fifo and icap
-		localparam ENABLE 					= 1'b0;
-		localparam DISABLE 					= 1'b1;
+		localparam ENABLE 				= 1'b0;
+		localparam DISABLE 				= 1'b1;
 		
 		//register
-		reg [255 : 0] 							data_temp;
-		reg [1 : 0] 							state;
-		reg [1 : 0] 							next_state;
-		reg [7 : 0] 							count;
-		reg [7 : 0] 							next_count;
+		reg [255 : 0] 					data_temp;
+		reg [1 : 0] 					state;
+		reg [1 : 0] 					next_state;
+		reg [7 : 0] 					count;
+		reg [7 : 0] 					next_count;
 
 	always @(posedge clock or negedge reset)
 	begin
@@ -73,18 +73,18 @@ module ICAP_statemachine
 	begin
 		case(state)
 			IDLE: begin
-				icap_en 			= DISABLE;
+				icap_en 	= DISABLE;
 				fifo_read_en 	= DISABLE;
-				next_count 		= ONE;
+				next_count 	= ONE;
 				if (fifo_empty)	next_state = IDLE;
-				else 					next_state = READ_FIFO;
+				else 		next_state = READ_FIFO;
 			end
 			READ_FIFO: begin
-				icap_en 			= DISABLE;
+				icap_en 	= DISABLE;
 				fifo_read_en 	= ENABLE;
-				data_temp 		= fifo_data;
+				data_temp 	= fifo_data;
 				if (fifo_empty)	next_state = IDLE;
-				else 					next_state = DIVIDE_DATA;
+				else 		next_state = DIVIDE_DATA;
 			end
 			DIVIDE_DATA: begin
 				case (count)
@@ -97,13 +97,12 @@ module ICAP_statemachine
 					SEVEN	: begin icap_data = data_temp[(7*32 - 1) : (6*32)]; next_count = next_count << 1;	icap_en = ENABLE; fifo_read_en = DISABLE; next_state = DIVIDE_DATA; end	//6
 					EIGHT	: begin icap_data = data_temp[(8*32 - 1) : (7*32)]; next_count = ONE;					icap_en = ENABLE; fifo_read_en = DISABLE;
 									  if(fifo_empty)	next_state = IDLE; 
-									  else 				next_state = READ_FIFO;
-							  end	//STOP
+									  else 			next_state = READ_FIFO;
+						  end
 					default: begin icap_data = 0; next_count = ONE; icap_en = DISABLE; fifo_read_en = DISABLE; next_state = IDLE; end
 				endcase
 			end
 			default: begin icap_en = DISABLE; fifo_read_en = DISABLE; next_state = IDLE; end
 		endcase
 	end
-
 endmodule
